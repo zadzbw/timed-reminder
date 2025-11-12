@@ -1,8 +1,9 @@
+import { Reminder } from '@/components/Reminder'
+
 export const App = () => {
   return (
-    <div className="flex flex-col">
-      <div>123</div>
-      <div>321</div>
+    <div className="bg-base-100 min-h-screen">
+      <Reminder />
     </div>
   )
 }
