@@ -1,0 +1,4 @@
+@import 'tailwindcss';
+@import './helpers.css';
+@import './scaffold.css';
+@plugin "daisyui";

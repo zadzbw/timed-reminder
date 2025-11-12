@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`\`Tabs\` component test > should render active tab content 1`] = `
+<div
+  class="tabs tabs-border"
+>
+  <div
+    class="tab"
+  >
+    Tab 1
+  </div>
+  <div
+    class="tab tab-active"
+  >
+    Tab 2
+  </div>
+  <div
+    class="tab-content border-base-300 bg-base-100 p-4"
+  >
+    Tab Content 2
+  </div>
+  <div
+    class="tab"
+  >
+    Tab 3
+  </div>
+</div>
+`;

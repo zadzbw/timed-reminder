@@ -1,0 +1,8 @@
+body {
+  @apply antialiased;
+}
+
+img,
+svg {
+  @apply shrink-0;
+}
