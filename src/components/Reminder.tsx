@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useInterval, useMount } from 'ahooks'
 import { useNotificationInterval, useSetNotificationInterval } from '@/models/notification'
 import { NumberKeyboard } from '@/components/NumberKeyboard.tsx'
 import { getPageQuery } from '@/utils/qs.ts'
+import { playSound } from '@/utils/audio.ts'
 import { showNotification } from '@/utils/notification.ts'
 
 const TestButton = ({ onClose }: { onClose: () => void }) => {
@@ -12,8 +13,12 @@ const TestButton = ({ onClose }: { onClose: () => void }) => {
     return (
       <button
         type="button"
-        onClick={() => {
-          showNotification(Math.round(Math.random() * 10), onClose)
+        onClick={async () => {
+          const pauseSound = await playSound()
+          showNotification(Math.round(Math.random() * 10), () => {
+            pauseSound()
+            onClose()
+          })
         }}
         className="btn btn-error flex-1"
       >
@@ -32,6 +37,11 @@ export const Reminder = () => {
   const [isRunning, setIsRunning] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(Math.round(notificationInterval * 60)) // 转换为秒，四舍五入
   const [inputInterval, setInputInterval] = useState(notificationInterval.toString())
+
+  // 使用时间戳来准确计算剩余时间，避免页面后台时 setInterval 被节流
+  const startTimeRef = useRef<number | null>(null)
+  const targetTimeRef = useRef<number | null>(null)
+  const pauseSoundRef = useRef<() => void>(() => {})
 
   // 请求通知权限
   useMount(() => {
@@ -57,30 +67,62 @@ export const Reminder = () => {
 
   // 开始定时
   const handleStart = useCallback(() => {
+    const now = Date.now()
+    const targetSeconds = Math.round(notificationInterval * 60)
+    startTimeRef.current = now
+    targetTimeRef.current = now + targetSeconds * 1000
     setIsRunning(true)
-  }, [])
+    setTimeRemaining(targetSeconds)
+  }, [notificationInterval])
 
   // 结束定时
   const handleStop = useCallback(() => {
     setIsRunning(false)
+    startTimeRef.current = null
+    targetTimeRef.current = null
+    pauseSoundRef.current()
     setTimeRemaining(Math.round(notificationInterval * 60)) // 四舍五入为整数秒
   }, [notificationInterval])
 
-  // 定时器逻辑
+  // 定时器逻辑 - 基于时间戳计算，避免页面后台时被节流
   useInterval(
-    () => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          // 时间到了，显示通知并重置计时器
-          // 传递停止计时的回调函数
-          showNotification(notificationInterval, handleStop)
-          return Math.round(notificationInterval * 60) // 四舍五入为整数秒
-        }
-        return prev - 1
-      })
+    async () => {
+      if (!targetTimeRef.current) return
+
+      const now = Date.now()
+      const remaining = Math.max(0, Math.round((targetTimeRef.current - now) / 1000))
+
+      if (remaining <= 0) {
+        // 时间到了，显示通知并重置计时器
+        pauseSoundRef.current = await playSound()
+        showNotification(notificationInterval, handleStop)
+        // 播放提示音
+        // 重新开始下一个周期
+        const targetSeconds = Math.round(notificationInterval * 60)
+        targetTimeRef.current = now + targetSeconds * 1000
+        setTimeRemaining(targetSeconds)
+      } else {
+        setTimeRemaining(remaining)
+      }
     },
     isRunning ? 1000 : undefined,
   )
+
+  // 监听页面可见性变化，页面重新激活时重新计算时间
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isRunning && targetTimeRef.current) {
+        // 页面重新激活，立即更新剩余时间
+        const now = Date.now()
+        const remaining = Math.max(0, Math.floor((targetTimeRef.current - now) / 1000))
+        setTimeRemaining(remaining)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [isRunning])
 
   // 格式化时间显示
   const formatTime = (seconds: number) => {
