@@ -2,9 +2,9 @@ import reminderIcon from '@/assets/reminder.svg'
 import { playSound } from '@/utils/audio.ts'
 
 // 显示通知
-export const showNotification = (minutes: number, onNotificationClick?: () => void) => {
+export const showNotification = async (minutes: number, onNotificationClick?: () => void) => {
   // 播放提示音
-  playSound()
+  const pauseSound = await playSound()
 
   // 格式化分钟数，如果是整数则显示整数，否则保留1位小数
   const formattedMinutes = Number.isInteger(minutes) ? minutes : minutes.toFixed(1)
@@ -22,6 +22,7 @@ export const showNotification = (minutes: number, onNotificationClick?: () => vo
       window.focus()
       // 关闭通知
       notification.close()
+      pauseSound()
       // 执行回调函数（停止计时）
       if (onNotificationClick) {
         onNotificationClick()

@@ -2,7 +2,28 @@ import { useState, useCallback } from 'react'
 import { useInterval, useMount } from 'ahooks'
 import { useNotificationInterval, useSetNotificationInterval } from '@/models/notification'
 import { NumberKeyboard } from '@/components/NumberKeyboard.tsx'
+import { getPageQuery } from '@/utils/qs.ts'
 import { showNotification } from '@/utils/notification.ts'
+
+const TestButton = ({ onClose }: { onClose: () => void }) => {
+  const query = getPageQuery()
+
+  if (query.test === '1') {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          showNotification(Math.round(Math.random() * 10), onClose)
+        }}
+        className="btn btn-error flex-1"
+      >
+        Test
+      </button>
+    )
+  }
+
+  return null
+}
 
 export const Reminder = () => {
   const notificationInterval = useNotificationInterval()
@@ -109,6 +130,7 @@ export const Reminder = () => {
           >
             结束
           </button>
+          <TestButton onClose={handleStop} />
         </div>
       </div>
     </div>
